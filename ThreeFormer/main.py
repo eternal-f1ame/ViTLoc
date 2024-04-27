@@ -54,103 +54,103 @@ if __name__ == "__main__":
        logging.info(f"Initialized from checkpoint: {args.checkpoint_path}")
 
     if args.mode == 'train':
-       model.train()
+        model.train()
 
-       freeze = config.get("freeze")
-       freeze_exclude_phrase = config.get("freeze_exclude_phrase")
-       if isinstance(freeze_exclude_phrase, str):
-           freeze_exclude_phrase = [freeze_exclude_phrase]
-       if freeze:
-           for name, param in model.named_parameters():
-               freeze_param = True
-               for phrase in freeze_exclude_phrase:
-                   if phrase in name:
-                       freeze_param = False
-                       break
-               if freeze_param:
-                   param.requires_grad_(False)
+        freeze = config.get("freeze")
+        freeze_exclude_phrase = config.get("freeze_exclude_phrase")
+        if isinstance(freeze_exclude_phrase, str):
+            freeze_exclude_phrase = [freeze_exclude_phrase]
+        if freeze:
+            for name, param in model.named_parameters():
+                freeze_param = True
+                for phrase in freeze_exclude_phrase:
+                    if phrase in name:
+                        freeze_param = False
+                        break
+                if freeze_param:
+                    param.requires_grad_(False)
 
-       pose_loss = CameraPoseLoss(config).to(device)
-       nll_loss = torch.nn.NLLLoss()
+        pose_loss = CameraPoseLoss(config).to(device)
+        nll_loss = torch.nn.NLLLoss()
 
-       params = list(model.parameters()) + list(pose_loss.parameters())
-       optim = torch.optim.Adam(filter(lambda p: p.requires_grad, params), lr=config.get('lr'), eps=config.get('eps'), weight_decay=config.get('weight_decay'))
-       scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=config.get('lr_scheduler_step_size'), gamma=config.get('lr_scheduler_gamma'))
+        params = list(model.parameters()) + list(pose_loss.parameters())
+        optim = torch.optim.Adam(filter(lambda p: p.requires_grad, params), lr=config.get('lr'), eps=config.get('eps'), weight_decay=config.get('weight_decay'))
+        scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=config.get('lr_scheduler_step_size'), gamma=config.get('lr_scheduler_gamma'))
 
-       no_augment = config.get("no_augment")
-       transform = utils.test_transforms.get('baseline') if no_augment else utils.train_transforms.get('baseline')
+        no_augment = config.get("no_augment")
+        transform = utils.test_transforms.get('baseline') if no_augment else utils.train_transforms.get('baseline')
 
-       equalize_scenes = config.get("equalize_scenes")
-       dataset = CameraPoseDataset(args.dataset_path, args.labels_file, transform, equalize_scenes)
-       loader_params = {'batch_size': config.get('batch_size'), 'shuffle': True, 'num_workers': config.get('n_workers')}
-       dataloader = torch.utils.data.DataLoader(dataset, **loader_params)
+        equalize_scenes = config.get("equalize_scenes")
+        dataset = CameraPoseDataset(args.dataset_path, args.labels_file, transform, equalize_scenes)
+        loader_params = {'batch_size': config.get('batch_size'), 'shuffle': True, 'num_workers': config.get('n_workers')}
+        dataloader = torch.utils.data.DataLoader(dataset, **loader_params)
 
-       n_freq_print = config.get("n_freq_print")
-       n_freq_checkpoint = config.get("n_freq_checkpoint")
-       n_epochs = config.get("n_epochs")
+        n_freq_print = config.get("n_freq_print")
+        n_freq_checkpoint = config.get("n_freq_checkpoint")
+        n_epochs = config.get("n_epochs")
 
-       checkpoint_prefix = join(utils.create_output_dir('checkpoints'), utils.get_stamp_from_log())
-       n_total_samples = 0
-       loss_vals = []
-       sample_count = []
+        checkpoint_prefix = join(utils.create_output_dir('checkpoints'), utils.get_stamp_from_log())
+        n_total_samples = 0
+        loss_vals = []
+        sample_count = []
 
-       for epoch in range(n_epochs):
-           running_loss = 0.0
-           n_samples = 0
+        for epoch in range(n_epochs):
+            running_loss = 0.0
+            n_samples = 0
 
-           for batch_idx, minibatch in enumerate(dataloader):
-               for k, v in minibatch.items():
-                   minibatch[k] = v.to(device)
-               gt_pose = minibatch.get('pose').to(dtype=torch.float32)
-               gt_scene = minibatch.get('scene').to(device)
-               batch_size = gt_pose.shape[0]
-               n_samples += batch_size
-               n_total_samples += batch_size
+            for batch_idx, minibatch in enumerate(dataloader):
+                for k, v in minibatch.items():
+                    minibatch[k] = v.to(device)
+                gt_pose = minibatch.get('pose').to(dtype=torch.float32)
+                gt_scene = minibatch.get('scene').to(device)
+                batch_size = gt_pose.shape[0]
+                n_samples += batch_size
+                n_total_samples += batch_size
 
-               if freeze:
-                   model.eval()
-                   with torch.no_grad():
-                       transformers_res = model.forward_transformers(minibatch)
-                   model.train()
+                if freeze:
+                    model.eval()
+                    with torch.no_grad():
+                        transformers_res = model.forward_transformers(minibatch)
+                    model.train()
 
-               optim.zero_grad()
+                optim.zero_grad()
 
-               if freeze:
-                   res = model.forward_heads(transformers_res)
-               else:
-                   res = model(minibatch)
+                if freeze:
+                    res = model.forward_heads(transformers_res)
+                else:
+                    res = model(minibatch)
 
-               est_pose = res.get('pose')
-               est_scene_log_distr = res.get('scene_log_distr')
-               if est_scene_log_distr is not None:
-                   criterion = pose_loss(est_pose, gt_pose) + nll_loss(est_scene_log_distr, gt_scene)
-               else:
-                   criterion = pose_loss(est_pose, gt_pose)
+                est_pose = res.get('pose')
+                est_scene_log_distr = res.get('scene_log_distr')
+                if est_scene_log_distr is not None:
+                    criterion = pose_loss(est_pose, gt_pose) + nll_loss(est_scene_log_distr, gt_scene)
+                else:
+                    criterion = pose_loss(est_pose, gt_pose)
 
-               running_loss += criterion.item()
-               loss_vals.append(criterion.item())
-               sample_count.append(n_total_samples)
+                running_loss += criterion.item()
+                loss_vals.append(criterion.item())
+                sample_count.append(n_total_samples)
 
-               criterion.backward()
-               optim.step()
+                criterion.backward()
+                optim.step()
 
-               if batch_idx % n_freq_print == 0:
-                   position_error, orientation_error = utils.pose_err(est_pose.detach(), gt_pose.detach())
-                   logging.info(f"[Batch-{batch_idx+1}/Epoch-{epoch+1}] Running camera pose loss: {running_loss/n_samples:.3f}, "
-                                f"Position error: {position_error.mean().item():.2f}[m], Orientation error: {orientation_error.mean().item():.2f}[deg]")
-                   wandb.log({'epoch': epoch+1,
-                              'running_camera_pose_loss': running_loss/n_samples,
-                              'position_error': position_error.mean().item(),
-                              'orientation_error': orientation_error.mean().item()
-                              })
+                if batch_idx % n_freq_print == 0:
+                    position_error, orientation_error = utils.pose_err(est_pose.detach(), gt_pose.detach())
+                    logging.info(f"[Batch-{batch_idx+1}/Epoch-{epoch+1}] Running camera pose loss: {running_loss/n_samples:.3f}, "
+                                    f"Position error: {position_error.mean().item():.2f}[m], Orientation error: {orientation_error.mean().item():.2f}[deg]")
+                    wandb.log({'epoch': epoch+1,
+                                'running_camera_pose_loss': running_loss/n_samples,
+                                'position_error': position_error.mean().item(),
+                                'orientation_error': orientation_error.mean().item()
+                                })
 
-           if (epoch % n_freq_checkpoint) == 0 and epoch > 0:
-               torch.save(model.state_dict(), f"{checkpoint_prefix}_checkpoint-{epoch}.pth")
+            if (epoch % n_freq_checkpoint) == 0 and epoch > 0:
+                torch.save(model.state_dict(), f"{checkpoint_prefix}_checkpoint-{epoch}.pth")
 
-           scheduler.step()
+            scheduler.step()
 
-       logging.info('Training complete')
-       torch.save(model.state_dict(), f"{checkpoint_prefix}_final.pth")
+        logging.info('Training complete')
+        torch.save(model.state_dict(), f"{checkpoint_prefix}_final.pth")
 
     else:
         model.eval()
