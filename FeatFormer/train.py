@@ -102,7 +102,7 @@ def train():
     model.to(device)
 
     if args.pretrain_featurenet_path == '':
-        print('Use the same DFNet for Feature Extraction and Pose Regression')
+        print('Use the same FeatFormer for Feature Extraction and Pose Regression')
         feat_model = load_exisiting_model(args)
     else: 
         feat_model = load_exisiting_model(args, isFeatureNet=True)

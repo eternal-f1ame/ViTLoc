@@ -50,8 +50,8 @@ class AdaptLayers(nn.Module):
             adapted_features.append(adapted_feature)
         return adapted_features
 
-class DFNet_s(nn.Module):
-    ''' DFNet implementation '''
+class FeatFormer(nn.Module):
+    ''' FeatFormer implementation '''
     default_conf = {
         'hypercolumn_layers': ["9", "10", "11"],
         'output_dim': 128,
@@ -60,7 +60,7 @@ class DFNet_s(nn.Module):
     std = [0.229, 0.224, 0.225]
 
     def __init__(self, feat_dim=12, places365_model_path=''):
-        super(DFNet_s, self).__init__()
+        super(FeatFormer, self).__init__()
 
         self.encoder = timm.create_model('vit_base_patch16_224.dino', pretrained=True, num_classes=0)
 
@@ -86,7 +86,7 @@ class DFNet_s(nn.Module):
 
     def forward(self, x, return_feature=False, isSingleStream=False, return_pose=True, upsampleH=244, upsampleW=244):
         '''
-        inference DFNet. It can regress camera pose as well as extract intermediate layer features.
+        inference FeatFormer. It can regress camera pose as well as extract intermediate layer features.
             :param x: image blob (2B x C x H x W) two stream or (B x C x H x W) single stream
             :param return_feature: whether to return features as output
             :param isSingleStream: whether it's an single stream inference or siamese network inference

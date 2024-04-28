@@ -7,11 +7,11 @@ import torch.nn.init
 
 from script.dm.helpers import preprocess_data
 
-from feature.dfnet import DFNet_s as FeatureNet3
+from feature.featformer import FeatFormer as FeatureNet3
 
 
 ''' PoseNet Models '''
-from feature.dfnet import DFNet_s as PoseNet3
+from feature.featformer import FeatFormer as PoseNet3
 
 def inference_pose_regression(args, data, device, model):
     """
@@ -44,7 +44,7 @@ def PoseLoss(args, pose_, pose, device):
     return pose_loss
 
 def load_exisiting_model(args, isFeatureNet=False):
-    ''' Load a pretrained DFNet model '''
+    ''' Load a pretrained FeatFormer model '''
     if isFeatureNet==False:
 
         model = PoseNet3()

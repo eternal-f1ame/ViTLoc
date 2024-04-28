@@ -49,8 +49,8 @@ def config_parser():
     parser.add_argument("--efficientnet", action='store_true', default=False, help='use efficientnet-b3 backbone instead of mobilenetV2')
     parser.add_argument("--efficientnet_block", type=int, default=6, help='choose which features from feature block (0-6) of efficientnet to use')
     parser.add_argument("--dropout", type=float, default=0.5, help='dropout rate for resnet34 backbone')
-    parser.add_argument("--DFNet", action='store_true', default=False, help='use DFNet')
-    parser.add_argument("--DFNet_s", action='store_true', default=False, help='use accelerated DFNet, performance is similar to DFNet but slightly faster')
+    parser.add_argument("--FeatFormer", action='store_true', default=False, help='use FeatFormer')
+    parser.add_argument("--FeatFormer", action='store_true', default=False, help='use accelerated FeatFormer, performance is similar to FeatFormer but slightly faster')
     parser.add_argument("--val_batch_size", type=int, default=1, help='batch_size for validation, higher number leads to faster speed')
 
     ##################### NeRF Settings ########################

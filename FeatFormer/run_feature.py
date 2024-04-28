@@ -13,7 +13,7 @@ from ViTLoc.FeatFormer.utils.utils import freeze_bn_layer, freeze_bn_layer_train
 from models.nerfw import create_nerf
 from tqdm import tqdm
 from utils.callbacks import EarlyStopping
-from feature.dfnet import DFNet_s
+from feature.featformer import FeatFormer
 from feature.misc import *
 from feature.options import config_parser
 
@@ -130,7 +130,7 @@ def train_on_batch(args, targets, rgbs, poses, feat_model, dset_size, FeatureLos
         features, predict_pose = feat_model(torch.cat([target_in, rgb_in]), True, upsampleH=H, upsampleW=W) # features: (1, [2, B, C, H, W])
 
         # get features_target and features_rgb
-        if args.DFNet:
+        if args.FeatFormer:
             features_target = features[0] # [3, B, C, H, W]
             features_rgb = features[1]
         else:
@@ -203,7 +203,7 @@ def train_on_batch_with_random_view_synthesis(args, targets, rgbs, poses, virtue
         features, predict_pose = feat_model(torch.cat([target_in, rgb_in]), return_feature=True, upsampleH=H, upsampleW=W) # features: (1, [2, B, C, H, W])
 
         # get features_target and features_rgb
-        if args.DFNet:
+        if args.FeatFormer:
             features_target = features[0] # [3, B, C, H, W]
             features_rgb = features[1]
 
@@ -232,7 +232,7 @@ def train_feature(args, train_dl, val_dl, test_dl, hwf, i_split, near, far):
 
     # # load pretrained PoseNet model
 
-    feat_model = DFNet_s()
+    feat_model = FeatFormer()
     
     if args.pretrain_model_path != '':
         print("load posenet from ", args.pretrain_model_path)
@@ -313,7 +313,7 @@ def train_feature(args, train_dl, val_dl, test_dl, hwf, i_split, near, far):
             rgb_in = rgbs[i:i+1].permute(0,3,1,2).to(device)
 
             features, _ = feat_model(torch.cat([target_in, rgb_in]), True, upsampleH=H, upsampleW=W)
-            if args.DFNet:
+            if args.FeatFormer:
                 features_target = features[0]
                 features_rgb = features[1]
 

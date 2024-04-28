@@ -72,7 +72,7 @@ def inference_pose_regression(args, data, device, model, retFeature=False, isSin
     _,_,H,W = data.size()
     if args.preprocess_ImgNet:
         inputs = preprocess_data(inputs, device)
-    if args.DFNet:
+    if args.FeatFormer:
         features, predict_pose = model(inputs, return_feature=retFeature, isSingleStream=isSingleStream, return_pose=return_pose, upsampleH=H, upsampleW=W)
     else:
         features, predict_pose = model(inputs, isTrain=retFeature, isSingleStream=isSingleStream)
