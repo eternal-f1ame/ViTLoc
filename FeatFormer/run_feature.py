@@ -8,8 +8,8 @@ from datasets.load_7Scenes import load_7Scenes_dataloader
 from datasets.load_Cambridge import load_Cambridge_dataloader
 import os.path as osp
 import numpy as np
-from ViTLoc.FeatFormer.utils.utils import plot_features, save_image_saliancy, save_image_saliancy_single
-from ViTLoc.FeatFormer.utils.utils import freeze_bn_layer, freeze_bn_layer_train
+from .utils.utils import plot_features, save_image_saliancy, save_image_saliancy_single
+from .utils.utils import freeze_bn_layer, freeze_bn_layer_train
 from models.nerfw import create_nerf
 from tqdm import tqdm
 from utils.callbacks import EarlyStopping

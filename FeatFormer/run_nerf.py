@@ -14,8 +14,8 @@ from models.ray_utils import *
 from models.nerfw import * # NeRF-w and NeRF-hist
 from models.options import config_parser
 from models.rendering import *
-from dataset_loaders.load_7Scenes import load_7Scenes_dataloader_NeRF
-from dataset_loaders.load_Cambridge import load_Cambridge_dataloader_NeRF
+from datasets.load_7Scenes import load_7Scenes_dataloader_NeRF
+from datasets.load_Cambridge import load_Cambridge_dataloader_NeRF
 
 # losses
 from models.losses import loss_dict

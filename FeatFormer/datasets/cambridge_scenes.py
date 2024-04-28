@@ -10,7 +10,7 @@ from torch.utils import data
 import sys
 import pdb
 import cv2
-from dataset_loaders.utils.color import rgb_to_yuv
+from FeatFormer.datasets.color import rgb_to_yuv
 from torchvision.utils import save_image
 import json
 

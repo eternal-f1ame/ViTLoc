@@ -17,7 +17,7 @@ import transforms3d.quaternions as txq
 # see for formulas:
 # https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-801-machine-vision-fall-2004/readings/quaternions.pdf
 # and "Quaternion and Rotation" - Yan-Bin Jia, September 18, 2016
-from dataset_loaders.utils.color import rgb_to_yuv
+from FeatFormer.datasets.color import rgb_to_yuv
 import json
 
 def RT2QT(poses_in, mean_t, std_t):

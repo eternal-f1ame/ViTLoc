@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init
 
-from script.dm.helpers import preprocess_data
+from utils.helpers import preprocess_data
 
 from feature.featformer import FeatFormer as FeatureNet3
 

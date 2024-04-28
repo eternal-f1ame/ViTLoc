@@ -8,18 +8,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm, trange
-from torchsummary import summary
 import matplotlib.pyplot as plt
 
-from script.dm.helpers import *
+from utils.helpers import *
 from utils.direct_pose_model import *
 from utils.callbacks import EarlyStopping
 from utils.options import config_parser
 from models.rendering import render_path
 from models.nerfw import to8b
-from dataset_loaders.load_7Scenes import load_7Scenes_dataloader
-from dataset_loaders.load_Cambridge import load_Cambridge_dataloader
-from ViTLoc.FeatFormer.utils.utils import freeze_bn_layer
+from datasets.load_7Scenes import load_7Scenes_dataloader
+from datasets.load_Cambridge import load_Cambridge_dataloader
+from .utils.utils import freeze_bn_layer
 from feature.direct_feature_matching import train_feature_matching
 
 parser = config_parser()

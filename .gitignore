@@ -171,6 +171,3 @@ ThreeFormer/checkpoints
 ThreeFormer/out
 ThreeFormer/datasets/7Scenes
 ThreeFormer/datasets/CambridgeLandmarks
-
-FeatFormer/configs
-FeatFormer/features

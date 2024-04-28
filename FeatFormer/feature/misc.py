@@ -6,9 +6,9 @@ import pytorch3d.transforms as transforms
 from torchvision.transforms import Resize
 import numpy as np
 import math
-from ViTLoc.FeatFormer.utils.utils import plot_features, save_image_saliancy
+from utils.utils import plot_features, save_image_saliancy
 from utils.direct_pose_model import fix_coord_supp
-from script.dm.helpers import vis_pose
+from utils.helpers import vis_pose
 from models.rendering import render, render_path
 import time
 import os

@@ -9,15 +9,15 @@ import torch.nn.init
 import numpy as np
 from tqdm import tqdm
 
-from script.dm.helpers import preprocess_data, get_error_in_q
+from utils.helpers import preprocess_data, get_error_in_q
 from utils.direct_pose_model import fix_coord_supp
 from models.nerfw import create_nerf, to8b, img2mse, mse2psnr
 from models.ray_utils import get_rays
 from models.rendering import render
-from ViTLoc.FeatFormer.utils.utils import freeze_bn_layer_train
+from utils.utils import freeze_bn_layer_train
 from feature.model import PoseNetV2 as FeatureNet
 from torchvision.utils import save_image
-from ViTLoc.FeatFormer.utils.utils import plot_features, save_image_saliancy
+from utils.utils import plot_features, save_image_saliancy
 
 def tmp_plot2(target_in, rgb_in, features_target, features_rgb, i=0):
     '''

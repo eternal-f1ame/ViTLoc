@@ -8,10 +8,10 @@ import torch.cuda
 from torch.utils.data import DataLoader
 from torchvision import transforms, models
 
-from dataset_loaders.cambridge_scenes import Cambridge2, normalize_recenter_pose, load_image
+from datasets.cambridge_scenes import Cambridge2, normalize_recenter_pose, load_image
 import pdb
 
-#from dataset_loaders.frustum.frustum_util import initK, generate_sampling_frustum, compute_frustums_overlap
+#from datasets.frustum.frustum_util import initK, generate_sampling_frustum, compute_frustums_overlap
 
 #focal_length = 555 # This is an approximate https://github.com/NVlabs/geomapnet/issues/8
                    # Official says (585,585)

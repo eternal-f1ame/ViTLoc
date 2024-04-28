@@ -9,7 +9,7 @@ import torch.cuda
 from torch.utils.data import DataLoader
 from torchvision import transforms, models
 
-from dataset_loaders.seven_scenes import SevenScenes
+from datasets.seven_scenes import SevenScenes
 import pdb
 
 to8b = lambda x : (255*np.clip(x,0,1)).astype(np.uint8)
