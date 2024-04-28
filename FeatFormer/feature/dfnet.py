@@ -1,0 +1,149 @@
+import torch
+from torch import nn
+import torch.nn.functional as F
+from torchvision import models
+import timm
+from typing import List
+
+class AdaptLayers(nn.Module):
+    """Small adaptation layers for ViT.
+    """
+
+    def __init__(self, hypercolumn_layers: List[str], output_dim: int = 128, encoder=None):
+        """Initialize one adaptation layer for every extraction point.
+
+        Args:
+            hypercolumn_layers: The list of the hypercolumn layer names.
+            output_dim: The output channel dimension.
+            encoder: The ViT encoder model.
+        """
+        super(AdaptLayers, self).__init__()
+        self.layers = nn.ModuleList()
+        self.output_dim = output_dim
+        self.encoder = encoder
+
+        channel_sizes = []
+        for layer_name in hypercolumn_layers:
+            layer_idx = int(layer_name)
+            channel_size = self.encoder.blocks[layer_idx].attn.proj.weight.shape[1]
+            channel_sizes.append(channel_size)
+
+        for i, l in enumerate(channel_sizes):
+            layer = nn.Sequential(
+                nn.Linear(l, 512),
+                nn.ReLU(),
+                nn.Linear(512, output_dim),
+                nn.BatchNorm1d(output_dim),
+            )
+            self.layers.append(layer)
+
+    def forward(self, features: List[torch.tensor]):
+        """Apply adaptation layers.
+        """
+        batch_size = features.shape[0]
+        _, height, width = features.shape[1:]
+        adapted_features = []
+        for i, feature in enumerate(features):
+            feature = feature.view(batch_size, -1, height * width).permute(0, 2, 1)
+            adapted_feature = self.layers[i](feature)
+            adapted_feature = adapted_feature.permute(0, 2, 1).view(batch_size, self.output_dim, height, width)
+            adapted_features.append(adapted_feature)
+        return adapted_features
+
+class DFNet_s(nn.Module):
+    ''' DFNet implementation '''
+    default_conf = {
+        'hypercolumn_layers': ["9", "10", "11"],
+        'output_dim': 128,
+    }
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+
+    def __init__(self, feat_dim=12, places365_model_path=''):
+        super(DFNet_s, self).__init__()
+
+        self.encoder = timm.create_model('vit_base_patch16_224.dino', pretrained=True, num_classes=0)
+
+        for param in self.encoder.parameters():
+            param.requires_grad = False
+
+        self.layer_to_index = {name: idx for idx, (name, _) in enumerate(self.encoder.blocks.named_children())}
+        print(self.layer_to_index)
+        self.hypercolumn_indices = [self.layer_to_index[n] for n in self.default_conf['hypercolumn_layers']]
+
+        self.scales = []
+        current_scale = 0
+        for i, layer in enumerate(self.encoder.children()):
+            if isinstance(layer, timm.models.vision_transformer.PatchEmbed):
+                current_scale += 1
+            if i in self.hypercolumn_indices:
+                self.scales.append(2**current_scale)
+
+        self.adaptation_layers = AdaptLayers(self.default_conf['hypercolumn_layers'], self.default_conf['output_dim'], self.encoder)
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc_pose = nn.Linear(self.encoder.num_features, feat_dim)
+
+    def forward(self, x, return_feature=False, isSingleStream=False, return_pose=True, upsampleH=244, upsampleW=244):
+        '''
+        inference DFNet. It can regress camera pose as well as extract intermediate layer features.
+            :param x: image blob (2B x C x H x W) two stream or (B x C x H x W) single stream
+            :param return_feature: whether to return features as output
+            :param isSingleStream: whether it's an single stream inference or siamese network inference
+            :param upsampleH: feature upsample size H
+            :param upsampleW: feature upsample size W
+            :return feature_maps: (2, [B, C, H, W]) or (1, [B, C, H, W]) or None
+            :return predict: [2B, 12] or [B, 12]
+        '''
+        mean, std = x.new_tensor(self.mean), x.new_tensor(self.std)
+        x = (x - mean[:, None, None]) / std[:, None, None]
+
+        feature_maps = []
+        x = self.encoder.patch_embed(x)
+        x = self.encoder.pos_drop(x)
+        x = self.encoder.patch_drop(x)
+        x = self.encoder.norm_pre(x)
+        for i in range(len(self.encoder.blocks)):
+            x = self.encoder.blocks[i](x)
+
+            if i in self.hypercolumn_indices:
+                feature = x.clone()
+                feature_maps.append(feature)
+
+                if i==self.hypercolumn_indices[-1]:
+                    if return_pose==False:
+                        predict = None
+                        break
+
+        if return_feature:
+            feature_maps = self.adaptation_layers(feature_maps)
+            if isSingleStream:
+                feature_stacks = []
+                for f in feature_maps:
+                    feature_stacks.append(torch.nn.UpsamplingBilinear2d(size=(upsampleH, upsampleW))(f))
+                feature_maps = [torch.stack(feature_stacks)]
+            else:
+                feature_stacks_t = []
+                feature_stacks_r = []
+                for f in feature_maps:
+
+                    batch = f.shape[0]
+                    feature_t = f[:batch//2]
+                    feature_r = f[batch//2:]
+
+                    feature_stacks_t.append(torch.nn.UpsamplingBilinear2d(size=(upsampleH, upsampleW))(feature_t))
+                    feature_stacks_r.append(torch.nn.UpsamplingBilinear2d(size=(upsampleH, upsampleW))(feature_r))
+                feature_stacks_t = torch.stack(feature_stacks_t)
+                feature_stacks_r = torch.stack(feature_stacks_r)
+                feature_maps = [feature_stacks_t, feature_stacks_r]
+        else:
+            feature_maps = None
+
+        if return_pose==False:
+            return feature_maps, predict
+
+        x = self.avgpool(x)
+        x = x.reshape(x.size(0), -1)
+        predict = self.fc_pose(x)
+                
+        return feature_maps, predict
