@@ -26,10 +26,9 @@ class CameraPoseLoss(nn.Module):
             :return: camera pose loss
             """
             l_x = torch.norm(gt_pose[:, 0:3] - est_pose[:, 0:3], dim=1, p=self.norm).mean()
-            l_q = torch.norm(F.normalize(gt_pose[:, 3:], p=2, dim=1) - F.normalize(est_pose[:, 3:], p=2, dim=1),
-                             dim=1, p=self.norm).mean()
+            l_q = torch.norm(F.normalize(gt_pose[:, 3:], p=2, dim=1) - F.normalize(est_pose[:, 3:], p=2, dim=1), dim=1, p=self.norm).mean()
 
             if self.learnable:
-                return l_x * torch.exp(-self.s_x) + self.s_x + l_q * torch.exp(-self.s_q) + self.s_q
+                return [l_x * torch.exp(-self.s_x) + self.s_x + l_q * torch.exp(-self.s_q) + self.s_q, self.s_x.item(), self.s_q.item()]
             else:
-                return self.s_x*l_x + self.s_q*l_q
+                return [self.s_x*l_x + self.s_q*l_q, self.s_x.item(), self.s_q.item()]

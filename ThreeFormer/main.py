@@ -37,7 +37,7 @@ if __name__ == "__main__":
     config = {**model_params, **general_params}
     logging.info("Configuration:\n{}".format('\n'.join([f"\t{k}: {v}" for k, v in config.items()])))
 
-    wandb.init(project="ViTLoc", name="ThreeFormer - Vanilla - Full Cambridge", config=config)
+    wandb.init(project="ViTLoc", name="ThreeFormer - Final - Full Cambridge Five", config=config)
 
     use_cuda = torch.cuda.is_available()
     device = 'cpu' if not use_cuda else config.get('device_id')
@@ -88,24 +88,27 @@ if __name__ == "__main__":
         n_freq_print = config.get("n_freq_print")
         n_freq_checkpoint = config.get("n_freq_checkpoint")
         n_epochs = config.get("n_epochs")
+        batch_size = config.get("batch_size")
 
         checkpoint_prefix = join(utils.create_output_dir('checkpoints'), utils.get_stamp_from_log())
         n_total_samples = 0
+        scene_error = 0
         loss_vals = []
         sample_count = []
+        running_loss = 0.0
 
         for epoch in range(n_epochs):
-            running_loss = 0.0
-            n_samples = 0
 
+            n_samples = 0
+            
             for batch_idx, minibatch in enumerate(dataloader):
                 for k, v in minibatch.items():
                     minibatch[k] = v.to(device)
                 gt_pose = minibatch.get('pose').to(dtype=torch.float32)
                 gt_scene = minibatch.get('scene').to(device)
-                batch_size = gt_pose.shape[0]
-                n_samples += batch_size
+                
                 n_total_samples += batch_size
+                n_samples += batch_size
 
                 if freeze:
                     model.eval()
@@ -123,12 +126,20 @@ if __name__ == "__main__":
                 est_pose = res.get('pose')
                 est_scene_log_distr = res.get('scene_log_distr')
                 if est_scene_log_distr is not None:
-                    criterion = pose_loss(est_pose, gt_pose) + nll_loss(est_scene_log_distr, gt_scene)
+                    pose_error, s_x, s_q = pose_loss(est_pose, gt_pose)
+                    scene_error = nll_loss(est_scene_log_distr, gt_scene)
                 else:
-                    criterion = pose_loss(est_pose, gt_pose)
+                    pose_error, s_x, s_q = pose_loss(est_pose, gt_pose)
 
-                running_loss += criterion.item()
+                criterion = pose_error + scene_error
+                running_loss = criterion.item()
                 loss_vals.append(criterion.item())
+
+                # Failsafe for Adverserial Prediction
+                if running_loss/batch_size > 500:
+                    logging.info(f"UNEXPECTED PREDICTION at Batch-{batch_idx+1} EPOCH-{epoch}")
+                    continue
+                
                 sample_count.append(n_total_samples)
 
                 criterion.backward()
@@ -136,13 +147,24 @@ if __name__ == "__main__":
 
                 if batch_idx % n_freq_print == 0:
                     position_error, orientation_error = utils.pose_err(est_pose.detach(), gt_pose.detach())
-                    logging.info(f"[Batch-{batch_idx+1}/Epoch-{epoch+1}] Running camera pose loss: {running_loss/n_samples:.3f}, "
+                    logging.info(f"[Batch-{batch_idx+1}/Epoch-{epoch+1}] Running camera pose loss: {running_loss/batch_size:.3f}, "
                                     f"Position error: {position_error.mean().item():.2f}[m], Orientation error: {orientation_error.mean().item():.2f}[deg]")
-                    wandb.log({'epoch': epoch+1,
-                                'running_camera_pose_loss': running_loss/n_samples,
+                    wandb.log({ 'epoch': epoch+1,
+                                'n_samples': n_samples,
+                                'pose_loss': pose_error,
+                                'scene_loss': scene_error,
+                                'net_loss': running_loss/n_total_samples,
                                 'position_error': position_error.mean().item(),
-                                'orientation_error': orientation_error.mean().item()
+                                'orientation_error': orientation_error.mean().item(),
+                                's_x': s_x,
+                                's_q': s_q
                                 })
+            
+                running_loss = 0
+
+            n_samples = 0
+
+
 
             if (epoch % n_freq_checkpoint) == 0 and epoch > 0:
                 torch.save(model.state_dict(), f"{checkpoint_prefix}_checkpoint-{epoch}.pth")

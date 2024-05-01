@@ -206,6 +206,7 @@ def render_nerfw_imgs(args, dl, hwf, device, render_kwargs_test, world_setup_dic
         with torch.no_grad():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
             if args.tinyimg:
+
                 rgb, _, _, _ = render(int(H//args.tinyscale), int(W//args.tinyscale), focal/args.tinyscale, chunk=args.chunk, c2w=pose_nerf[0,:3,:4].to(device), retraw=True, img_idx=img_idx, **render_kwargs_test)
                 rgb = rgb[None,...].permute(0,3,1,2)
                 rgb = torch.nn.Upsample(size=(H, W), mode='bicubic')(rgb)
@@ -215,7 +216,6 @@ def render_nerfw_imgs(args, dl, hwf, device, render_kwargs_test, world_setup_dic
             else:
                 rgb, _, _, _ = render(H, W, focal, chunk=args.chunk, c2w=pose_nerf[0,:3,:4].to(device), retraw=True, img_idx=img_idx, **render_kwargs_test)
             torch.set_default_tensor_type('torch.FloatTensor')
-            # print(rgb.shape)
             
         target_list.append(target.cpu())
         rgb_list.append(rgb.cpu())
@@ -245,17 +245,19 @@ def render_virtual_imgs(args, pose_perturb, img_idxs, hwf, device, render_kwargs
 
         with torch.no_grad():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
+
             if args.tinyimg:
                 rgb, _, _, _ = render(int(H//args.tinyscale), int(W//args.tinyscale), focal/args.tinyscale, chunk=args.chunk, c2w=pose_nerf[0,:3,:4].to(device), retraw=False, img_idx=img_idx, **render_kwargs_test)
                 rgb = rgb[None,...].permute(0,3,1,2)
                 rgb = torch.nn.Upsample(size=(H, W), mode='bicubic')(rgb)
+                rgb = Resize((224, 224))(rgb)
                 rgb = rgb[0].permute(1,2,0)
 
             else:
                 rgb, _, _, _ = render(H, W, focal, chunk=args.chunk, c2w=pose_nerf[0,:3,:4].to(device), retraw=False, img_idx=img_idx, **render_kwargs_test)
+
             torch.set_default_tensor_type('torch.FloatTensor')
         rgb_list.append(rgb.cpu())
-
     rgbs = torch.stack(rgb_list).detach()
     return rgbs
 

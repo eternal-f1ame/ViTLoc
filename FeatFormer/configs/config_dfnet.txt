@@ -1,6 +1,6 @@
 ############################################### NeRF-Hist training example Cambridge ###############################################
 model_name=featformer
-basedir=../logs/kings
+basedir=logs/kings
 expname=nerfh
 datadir=../../data/Cambridge_Five_Scenes/KingsCollege
 dataset_type=Cambridge
@@ -20,12 +20,12 @@ rvs_refresh_rate=20
 rvs_trans=3
 rvs_rotation=7.5
 d_max=1
-# pretrain_model_path = ../logs/kings/featformer/checkpoint-0604-0.2688.pt # add your trained model for eval
+# pretrain_model_path = logs/kings/featformer/checkpoint-0604-0.2688.pt # add your trained model for eval
 # eval=True # add this for eval
 
 ############################################### NeRF-Hist training example 7-Scenes ###############################################
 # model_name=featformer
-# basedir=../logs/heads
+# basedir=logs/heads
 # expname=nerfh
 # datadir=../data/7Scenes/heads
 # dataset_type=7Scenes
@@ -47,5 +47,5 @@ d_max=1
 # rvs_trans=0.2
 # rvs_rotation=10     
 # d_max=0.2
-# # pretrain_model_path = ../logs/heads/featformer/checkpoint-0888-0.0025.pt # add your trained model for eval
+# # pretrain_model_path = logs/heads/featformer/checkpoint-0888-0.0025.pt # add your trained model for eval
 # # eval=True # add this for eval

@@ -95,7 +95,6 @@ def config_parser():
     parser.add_argument("--efficientnet", action='store_true', default=False, help='use efficientnet-b3 backbone instead of mobilenetV2')
     parser.add_argument("--dropout", type=float, default=0.5, help='dropout rate for resnet34 backbone')
     parser.add_argument("--FeatFormer", action='store_true', default=False, help='use FeatFormer')
-    parser.add_argument("--FeatFormer", action='store_true', default=False, help='use accelerated FeatFormer, performance is similar to FeatFormer but slightly faster')
     parser.add_argument("--featurelossonly", action='store_true', default=False, help='only use feature loss to train feature extraction')
     parser.add_argument("--random_view_synthesis", action='store_true', default=False, help='add random view synthesis')
     parser.add_argument("--rvs_refresh_rate", type=int, default=2, help='re-synthesis new views per X epochs')

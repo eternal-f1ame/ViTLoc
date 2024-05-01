@@ -22,31 +22,20 @@ class AdaptLayers(nn.Module):
         self.output_dim = output_dim
         self.encoder = encoder
 
-        channel_sizes = []
         for layer_name in hypercolumn_layers:
             layer_idx = int(layer_name)
-            channel_size = self.encoder.blocks[layer_idx].attn.proj.weight.shape[1]
-            channel_sizes.append(channel_size)
-
-        for i, l in enumerate(channel_sizes):
-            layer = nn.Sequential(
-                nn.Linear(l, 512),
-                nn.ReLU(),
-                nn.Linear(512, output_dim),
-                nn.BatchNorm1d(output_dim),
-            )
+            layer = self.encoder.blocks[layer_idx]
             self.layers.append(layer)
 
     def forward(self, features: List[torch.tensor]):
         """Apply adaptation layers.
         """
-        batch_size = features.shape[0]
-        _, height, width = features.shape[1:]
+
         adapted_features = []
         for i, feature in enumerate(features):
-            feature = feature.view(batch_size, -1, height * width).permute(0, 2, 1)
+            feature = feature
             adapted_feature = self.layers[i](feature)
-            adapted_feature = adapted_feature.permute(0, 2, 1).view(batch_size, self.output_dim, height, width)
+            adapted_feature = adapted_feature
             adapted_features.append(adapted_feature)
         return adapted_features
 
@@ -68,7 +57,6 @@ class FeatFormer(nn.Module):
             param.requires_grad = False
 
         self.layer_to_index = {name: idx for idx, (name, _) in enumerate(self.encoder.blocks.named_children())}
-        print(self.layer_to_index)
         self.hypercolumn_indices = [self.layer_to_index[n] for n in self.default_conf['hypercolumn_layers']]
 
         self.scales = []
@@ -81,7 +69,7 @@ class FeatFormer(nn.Module):
 
         self.adaptation_layers = AdaptLayers(self.default_conf['hypercolumn_layers'], self.default_conf['output_dim'], self.encoder)
 
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, self.encoder.num_features))
         self.fc_pose = nn.Linear(self.encoder.num_features, feat_dim)
 
     def forward(self, x, return_feature=False, isSingleStream=False, return_pose=True, upsampleH=244, upsampleW=244):
@@ -120,19 +108,21 @@ class FeatFormer(nn.Module):
             if isSingleStream:
                 feature_stacks = []
                 for f in feature_maps:
-                    feature_stacks.append(torch.nn.UpsamplingBilinear2d(size=(upsampleH, upsampleW))(f))
+                    feature_stacks.append(torch.nn.UpsamplingBilinear2d(size=(224, 224))(f))
                 feature_maps = [torch.stack(feature_stacks)]
             else:
                 feature_stacks_t = []
                 feature_stacks_r = []
                 for f in feature_maps:
+                    deconv = torch.nn.ConvTranspose2d(in_channels=768, out_channels=3, kernel_size=16, stride=16, padding=0, bias=False).to('cuda')
+                    f = deconv(f.view(-1, 768, 14, 14))
 
                     batch = f.shape[0]
                     feature_t = f[:batch//2]
                     feature_r = f[batch//2:]
 
-                    feature_stacks_t.append(torch.nn.UpsamplingBilinear2d(size=(upsampleH, upsampleW))(feature_t))
-                    feature_stacks_r.append(torch.nn.UpsamplingBilinear2d(size=(upsampleH, upsampleW))(feature_r))
+                    feature_stacks_t.append(torch.nn.UpsamplingBilinear2d(size=(224, 224))(feature_t))
+                    feature_stacks_r.append(torch.nn.UpsamplingBilinear2d(size=(224, 224))(feature_r))
                 feature_stacks_t = torch.stack(feature_stacks_t)
                 feature_stacks_r = torch.stack(feature_stacks_r)
                 feature_maps = [feature_stacks_t, feature_stacks_r]
@@ -141,9 +131,7 @@ class FeatFormer(nn.Module):
 
         if return_pose==False:
             return feature_maps, predict
-
         x = self.avgpool(x)
         x = x.reshape(x.size(0), -1)
         predict = self.fc_pose(x)
-                
         return feature_maps, predict

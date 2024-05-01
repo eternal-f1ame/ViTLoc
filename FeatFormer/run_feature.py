@@ -8,8 +8,8 @@ from datasets.load_7Scenes import load_7Scenes_dataloader
 from datasets.load_Cambridge import load_Cambridge_dataloader
 import os.path as osp
 import numpy as np
-from .utils.utils import plot_features, save_image_saliancy, save_image_saliancy_single
-from .utils.utils import freeze_bn_layer, freeze_bn_layer_train
+from utils.utils import plot_features, save_image_saliancy, save_image_saliancy_single
+from utils.utils import freeze_bn_layer, freeze_bn_layer_train
 from models.nerfw import create_nerf
 from tqdm import tqdm
 from utils.callbacks import EarlyStopping
@@ -193,7 +193,6 @@ def train_on_batch_with_random_view_synthesis(args, targets, rgbs, poses, virtue
         target_in = targets[i_inds].clone().permute(0,3,1,2).to(device)
         rgb_in = rgbs[i_inds].clone().permute(0,3,1,2).to(device)
 
-        print(target_in.shape, rgb_in.shape)
         pose = poses[i_inds].clone().reshape(batch_size, 12).to(device)
         rgb_perturb = virtue_view[i_inds].clone().permute(0,3,1,2).to(device)
         pose_perturb = poses_perturb[i_inds].clone().reshape(batch_size, 12).to(device)
