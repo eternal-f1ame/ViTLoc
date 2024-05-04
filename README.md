@@ -47,7 +47,7 @@ Each method has its own codebase and conda environment file. Follow the steps be
    conda activate <name>
    ```
 
-4. You can now run the PoseFormer code.
+4. You can now run the main code.
 
 
 * Please refer to the respective method directories for specific instructions on running the code and any additional dependencies or requirements.
