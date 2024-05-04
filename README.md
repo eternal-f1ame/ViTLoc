@@ -32,9 +32,9 @@ Each method has its own codebase and conda environment file. Follow the steps be
 
 ### PoseFormer/ThreeFormer/FeatFormer
 
-1. Navigate to the `PoseFormer` directory:
+1. Navigate to the `<NAME>Former` directory:
    ```
-   cd PoseFormer
+   cd <NAME>Former
    ```
 
 2. Create a new conda environment from the provided `conda.yaml` file:
@@ -44,7 +44,7 @@ Each method has its own codebase and conda environment file. Follow the steps be
 
 3. Activate the environment:
    ```
-   conda activate poseformer-env
+   conda activate <name>
    ```
 
 4. You can now run the PoseFormer code.
